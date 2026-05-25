@@ -1,0 +1,22 @@
+{
+  "trigger": {
+    "type": "webhook",
+    "config": {
+      "path": "/lead-scoring"
+    }
+  },
+  "actions": [
+    {
+      "id": "score-lead",
+      "type": "ai_lead_scoring",
+      "config": {}
+    },
+    {
+      "id": "notify-sales",
+      "type": "log",
+      "config": {
+        "message": "Lead Scored: {{steps.score-lead.score}} - {{steps.score-lead.justification}}"
+      }
+    }
+  ]
+}
