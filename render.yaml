@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: nexus-ai-api
+    env: docker
+    dockerContext: .
+    dockerfilePath: apps/api/Dockerfile
+    plan: free
+    region: oregon
+    envVars:
+      - key: PORT
+        value: 3001
+      - key: DATABASE_URL
+        value: file:./dev.db
+      - key: NODE_ENV
+        value: production
+    healthCheckPath: /health
