@@ -1,0 +1,13 @@
+node_modules
+.git
+*.md
+*.png
+*.jpg
+*.jpeg
+.env
+.env.local
+dist
+build
+.tsbuildinfo
+*.db
+*.db-journal
