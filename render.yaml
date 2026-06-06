@@ -3,7 +3,7 @@ services:
     name: nexus-ai-api
     env: docker
     dockerContext: .
-    dockerfilePath: apps/api/Dockerfile
+    dockerfilePath: Dockerfile
     plan: free
     region: oregon
     envVars:
