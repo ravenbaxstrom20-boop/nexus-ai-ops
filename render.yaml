@@ -1,18 +1,13 @@
 services:
   - type: web
     name: nexus-ai-api
-    env: node
     region: oregon
     plan: free
-    buildCommand: npm install --no-audit --no-fund && npx prisma generate --schema=packages/db/prisma/schema.prisma && npx prisma db push --schema=packages/db/prisma/schema.prisma
-    startCommand: node server.cjs
+    buildCommand: npm install --no-audit --no-fund --include=dev && npx prisma generate --schema=packages/db/prisma/schema.prisma && npx prisma db push --schema=packages/db/prisma/schema.prisma
+    startCommand: cd apps/api && npx --no-install tsx src/index.ts
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 3001
       - key: DATABASE_URL
-        value: file:./dev.db
-      - key: NODE_OPTIONS
-        value: --max-old-space-size=256
+        value: file:../packages/db/dev.db
