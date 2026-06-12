@@ -1,24 +1,49 @@
 import { ActionHandler } from '../engine';
+import { callGemini } from '../services/ai';
 
 export const aiEnrichmentHandler: ActionHandler = async (config, context) => {
   console.log(`[AIEnrichmentAction] Enriching lead data...`);
 
   // Extract lead data from context
   const lead = context.trigger?.lead || context.steps?.[config.leadStepId] || context.data;
-
+  
   if (!lead) {
     throw new Error('No lead data found in context for enrichment.');
   }
 
   const { email, company } = lead;
-
   if (!email && !company) {
     throw new Error('Insufficient lead data for enrichment (email or company required).');
   }
 
-  // Mock AI/External API Logic: In a real scenario, this would call an LLM or an enrichment service like Clearbit/Apollo
-  // We'll simulate fetching data based on the domain or company name
-  
+  const prompt = `
+    Enrich this lead data with industry, company size, and LinkedIn URL.
+    Email: ${email}
+    Company: ${company}
+    
+    Output ONLY a JSON object with:
+    - industry (string)
+    - companySize (string)
+    - linkedInUrl (string)
+  `;
+
+  const aiResult = await callGemini(prompt);
+
+  if (aiResult) {
+    try {
+      const cleanJson = aiResult.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(cleanJson);
+      return {
+        ...parsed,
+        enrichmentModel: 'gemini-1.5-flash',
+        timestamp: new Date().toISOString()
+      };
+    } catch (e) {
+      console.error("Failed to parse AI enrichment result:", aiResult);
+    }
+  }
+
+  // Fallback Mock Logic
   let enrichedData = {
     industry: 'Technology',
     companySize: '51-200 employees',
@@ -27,18 +52,11 @@ export const aiEnrichmentHandler: ActionHandler = async (config, context) => {
     timestamp: new Date().toISOString()
   };
 
-  // Heuristic adjustments
   if (email?.endsWith('.edu')) {
     enrichedData.industry = 'Education';
-    enrichedData.companySize = 'N/A';
   } else if (email?.endsWith('.gov')) {
     enrichedData.industry = 'Government';
-    enrichedData.companySize = '10,000+ employees';
-  } else if (company?.toLowerCase().includes('startup')) {
-    enrichedData.companySize = '1-10 employees';
   }
-
-  console.log(`[AIEnrichmentAction] Data enriched for ${email || company}`);
 
   return enrichedData;
 };

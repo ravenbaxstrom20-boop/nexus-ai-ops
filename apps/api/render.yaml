@@ -10,7 +10,14 @@ services:
       - key: PORT
         value: 3001
       - key: DATABASE_URL
-        value: file:./packages/db/prisma/dev.db
+        fromDatabase:
+          name: nexus-db
+          property: connectionString
       - key: NODE_ENV
         value: production
     healthCheckPath: /health
+
+databases:
+  - name: nexus-db
+    plan: free
+    region: oregon

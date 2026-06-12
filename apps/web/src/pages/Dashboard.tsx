@@ -1,4 +1,6 @@
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { dashboardApi, jobsApi } from '../api';
 import { 
   Briefcase, 
   Users, 
@@ -6,10 +8,34 @@ import {
   Clock, 
   AlertCircle,
   CheckCircle2,
-  MoreVertical
+  MoreVertical,
+  Loader2
 } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 
 const Dashboard: React.FC = () => {
+  const { data: stats, isLoading: statsLoading } = useQuery(['dashboard-stats'], dashboardApi.getStats);
+  const { data: jobs, isLoading: jobsLoading } = useQuery(['recent-jobs'], jobsApi.getAll);
+
+  if (statsLoading || jobsLoading) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+      </div>
+    );
+  }
+
+  const activeJobsCount = stats?.jobsByStatus?.reduce((acc: number, curr: any) => {
+    if (curr.status !== 'completed' && curr.status !== 'cancelled') {
+      return acc + curr.count;
+    }
+    return acc;
+  }, 0) || 0;
+
+  const recentJobs = [...(jobs || [])]
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    .slice(0, 3);
+
   return (
     <div className="space-y-8">
       <div>
@@ -21,27 +47,26 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
           title="Active Jobs" 
-          value="24" 
-          change="+3 this week" 
+          value={activeJobsCount.toString()} 
+          change="Real-time" 
           icon={<Briefcase className="text-blue-600" />} 
         />
         <StatCard 
           title="Hot Leads" 
-          value="12" 
-          change="+5 this week" 
+          value={stats?.hotLeadsCount?.toString() || '0'} 
+          change="Score > 80" 
           icon={<TrendingUp className="text-emerald-600" />} 
         />
         <StatCard 
-          title="Tasks Due Today" 
-          value="8" 
-          change="3 overdue" 
-          icon={<Clock className="text-orange-600" />} 
-          trend="down"
+          title="Lead Pipeline Value" 
+          value={`${(stats?.totalLeadsValue || 0).toLocaleString()}`} 
+          change="Potential revenue" 
+          icon={<TrendingUp className="text-indigo-600" />} 
         />
         <StatCard 
-          title="Automations Run" 
-          value="142" 
-          change="99.2% success" 
+          title="Completed Jobs" 
+          value={(stats?.jobsByStatus?.find((s: any) => s.status === 'completed')?.count || 0).toString()} 
+          change="Finished projects" 
           icon={<CheckCircle2 className="text-indigo-600" />} 
         />
       </div>
@@ -55,24 +80,18 @@ const Dashboard: React.FC = () => {
               <button className="text-blue-600 text-sm font-medium hover:underline">View all</button>
             </div>
             <div className="divide-y divide-slate-100">
-              <ActivityItem 
-                client="Acme Corp" 
-                project="Website Redesign" 
-                status="In Progress" 
-                time="2 hours ago" 
-              />
-              <ActivityItem 
-                client="Global Tech" 
-                project="SEO Audit" 
-                status="Review" 
-                time="5 hours ago" 
-              />
-              <ActivityItem 
-                client="Local Shop" 
-                project="Email Campaign" 
-                status="Completed" 
-                time="Yesterday" 
-              />
+              {recentJobs.map((job) => (
+                <ActivityItem 
+                  key={job.id}
+                  client={job.lead?.company || job.lead?.firstName || 'Unknown Client'} 
+                  project={job.title} 
+                  status={job.status} 
+                  time={formatDistanceToNow(new Date(job.updatedAt), { addSuffix: true })} 
+                />
+              ))}
+              {recentJobs.length === 0 && (
+                <p className="px-6 py-8 text-center text-sm text-slate-500 italic">No recent activity</p>
+              )}
             </div>
           </div>
 
@@ -97,12 +116,19 @@ const Dashboard: React.FC = () => {
         {/* Sidebar content */}
         <div className="space-y-6">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <h2 className="font-semibold text-slate-900 mb-4">Pipeline Overview</h2>
+            <h2 className="font-semibold text-slate-900 mb-4">Industry Breakdown</h2>
             <div className="space-y-4">
-              <PipelineStep label="New Leads" count={5} color="bg-blue-500" />
-              <PipelineStep label="Discovery" count={3} color="bg-indigo-500" />
-              <PipelineStep label="Proposal" count={2} color="bg-emerald-500" />
-              <PipelineStep label="Negotiation" count={2} color="bg-orange-500" />
+              {stats?.industryBreakdown?.map((item: any) => (
+                <PipelineStep 
+                  key={item.industry}
+                  label={item.industry} 
+                  count={item.count} 
+                  color="bg-blue-500" 
+                />
+              ))}
+              {(!stats?.industryBreakdown || stats.industryBreakdown.length === 0) && (
+                <p className="text-sm text-slate-500 italic">No industry data available</p>
+              )}
             </div>
           </div>
         </div>
@@ -140,10 +166,12 @@ const ActivityItem = ({ client, project, status, time }: any) => (
     </div>
     <div className="text-right">
       <span className={`inline-block px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-1
-        ${status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : 
-          status === 'Review' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}
+        ${status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 
+          status === 'pending' ? 'bg-orange-100 text-orange-700' : 
+          status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+          status === 'on_hold' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'}
       `}>
-        {status}
+        {status.replace('_', ' ')}
       </span>
       <p className="text-[10px] text-slate-400">{time}</p>
     </div>
