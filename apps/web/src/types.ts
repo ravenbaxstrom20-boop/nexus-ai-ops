@@ -9,6 +9,7 @@ export interface Lead {
   source?: string;
   value?: number;
   score?: number;
+  lastContacted?: string;
   createdAt: string;
   updatedAt: string;
 }

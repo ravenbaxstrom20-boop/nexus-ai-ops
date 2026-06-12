@@ -117,12 +117,12 @@ const LeadDetails: React.FC<LeadDetailsProps> = ({ lead, onBack, onEdit, onScore
   );
 };
 
-const ContactInfoItem = ({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) => (
+const ContactInfoItem = ({ icon, label, value }: { icon: React.ReactNode, label: string, value?: string }) => (
   <div className="flex items-start gap-3">
     <div className="mt-1 text-slate-400">{icon}</div>
     <div>
       <p className="text-xs text-slate-500">{label}</p>
-      <p className="text-sm font-medium text-slate-900">{value}</p>
+      <p className="text-sm font-medium text-slate-900">{value || 'N/A'}</p>
     </div>
   </div>
 );

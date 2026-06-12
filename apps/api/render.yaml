@@ -1,16 +1,16 @@
 services:
   - type: web
     name: nexus-ai-api
-    env: docker
-    dockerContext: ../..
-    dockerfilePath: apps/api/Dockerfile
+    env: node
     plan: free
     region: oregon
+    buildCommand: npm install && npx prisma generate --schema=packages/db/prisma/schema.prisma && npx prisma db push --schema=packages/db/prisma/schema.prisma --accept-data-loss && npx tsx packages/db/seed.ts
+    startCommand: npx tsx apps/api/src/index.ts
     envVars:
       - key: PORT
         value: 3001
       - key: DATABASE_URL
-        value: file:./dev.db
+        value: file:./packages/db/prisma/dev.db
       - key: NODE_ENV
         value: production
     healthCheckPath: /health
