@@ -1,10 +1,12 @@
-import { prisma } from '../index';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Seeding database...');
+  console.log('Starting seeding...');
 
-  // Create a demo user
-  const user = await prisma.user.upsert({
+  // Create admin user
+  const admin = await prisma.user.upsert({
     where: { email: 'admin@nexusaiops.com' },
     update: {},
     create: {
@@ -13,38 +15,31 @@ async function main() {
       role: 'admin',
     },
   });
-
-  console.log({ user });
+  console.log('Admin user created/verified');
 
   // Create sample leads
-  const lead1 = await prisma.lead.create({
-    data: {
+  const leadsData = [
+    {
       firstName: 'John',
       lastName: 'Doe',
-      email: 'john.doe@techcorp.com',
+      email: 'john@techcorp.com',
       company: 'TechCorp',
       industry: 'Software',
-      status: 'hot',
+      status: 'new',
       value: 5000,
-      score: 85,
+      score: 75,
     },
-  });
-
-  const lead2 = await prisma.lead.create({
-    data: {
+    {
       firstName: 'Jane',
       lastName: 'Smith',
       email: 'jane@marketingpro.io',
       company: 'MarketingPro',
       industry: 'Marketing',
-      status: 'new',
+      status: 'contacted',
       value: 2500,
       score: 45,
     },
-  });
-
-  const lead3 = await prisma.lead.create({
-    data: {
+    {
       firstName: 'Bob',
       lastName: 'Johnson',
       email: 'bob@builders.net',
@@ -54,73 +49,159 @@ async function main() {
       value: 12000,
       score: 92,
     },
-  });
+    {
+      firstName: 'Alice',
+      lastName: 'Williams',
+      email: 'alice@paperco.com',
+      company: 'Dunder Mifflin',
+      industry: 'Paper',
+      status: 'new',
+      value: 1500,
+      score: 30,
+    },
+    {
+      firstName: 'Charlie',
+      lastName: 'Brown',
+      email: 'charlie@energyx.com',
+      company: 'EnergyX',
+      industry: 'Energy',
+      status: 'new',
+      value: 8000,
+      score: 65,
+    },
+    {
+      firstName: 'David',
+      lastName: 'Wilson',
+      email: 'david@logistics.com',
+      company: 'Wilson Logistics',
+      industry: 'Logistics',
+      status: 'qualified',
+      value: 15000,
+      score: 88,
+    },
+    {
+      firstName: 'Eve',
+      lastName: 'Davis',
+      email: 'eve@legal.com',
+      company: 'Davis Legal',
+      industry: 'Legal',
+      status: 'new',
+      value: 3000,
+      score: 55,
+    },
+    {
+      firstName: 'Frank',
+      lastName: 'Miller',
+      email: 'frank@foodie.com',
+      company: 'Foodie Inc',
+      industry: 'Food & Beverage',
+      status: 'contacted',
+      value: 4500,
+      score: 70,
+    },
+  ];
 
-  console.log('Leads created');
+  const leads = [];
+  for (const data of leadsData) {
+    const lead = await prisma.lead.create({
+      data,
+    });
+    leads.push(lead);
+  }
+  console.log(`${leads.length} leads created`);
 
   // Create sample jobs
-  await prisma.job.create({
-    data: {
+  const techCorp = leads.find(l => l.company === 'TechCorp');
+  const marketingPro = leads.find(l => l.company === 'MarketingPro');
+  const builders = leads.find(l => l.company === 'Bob Builders');
+  const logistics = leads.find(l => l.company === 'Wilson Logistics');
+  const legal = leads.find(l => l.company === 'Davis Legal');
+
+  const jobsData = [
+    {
       title: 'CRM Implementation',
       description: 'Setup and configure Nexus AI Ops for TechCorp',
-      status: 'in-progress',
+      status: 'in_progress',
       priority: 'high',
-      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-      leadId: lead1.id,
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      leadId: techCorp?.id,
     },
-  });
-
-  await prisma.job.create({
-    data: {
+    {
       title: 'Lead Enrichment Workflow',
       description: 'Automate lead enrichment for new MarketingPro leads',
       status: 'pending',
       priority: 'medium',
-      dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
-      leadId: lead2.id,
+      dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      leadId: marketingPro?.id,
     },
-  });
-
-  await prisma.job.create({
-    data: {
+    {
       title: 'Infrastructure Audit',
       description: 'Audit the construction pipeline infrastructure',
       status: 'completed',
       priority: 'low',
-      dueDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-      leadId: lead3.id,
+      dueDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      leadId: builders?.id,
     },
-  });
-
-  await prisma.job.create({
-    data: {
-      title: 'General Maintenance',
-      description: 'Monthly platform maintenance',
+    {
+      title: 'Logistic Automation',
+      description: 'Automate delivery tracking for Wilson Logistics',
+      status: 'pending',
+      priority: 'urgent',
+      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+      leadId: logistics?.id,
+    },
+    {
+      title: 'Legal Document Parsing',
+      description: 'Implement AI parsing for Davis Legal contracts',
+      status: 'in_progress',
+      priority: 'high',
+      dueDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+      leadId: legal?.id,
+    },
+    {
+      title: 'Website SEO Strategy',
+      description: 'Develop comprehensive SEO plan for MarketingPro',
+      status: 'completed',
+      priority: 'medium',
+      dueDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+      leadId: marketingPro?.id,
+    },
+    {
+      title: 'Platform Maintenance',
+      description: 'Monthly platform maintenance and security updates',
       status: 'pending',
       priority: 'low',
       dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     },
-  });
+  ];
 
-  console.log('Jobs created');
+  for (const data of jobsData) {
+    await prisma.job.create({
+      data,
+    });
+  }
+  console.log(`${jobsData.length} jobs created`);
 
   // Create sample workflows
-  await prisma.workflow.create({
-    data: {
+  await prisma.workflow.upsert({
+    where: { id: 'sample-workflow-1' },
+    update: {},
+    create: {
+      id: 'sample-workflow-1',
       name: 'Lead Scoring Flow',
-      description: 'Automatically score new leads based on company size and industry',
+      description: 'Automatically score new leads based on fit and potential value',
       definition: JSON.stringify({
-        nodes: [
-          { id: '1', type: 'trigger', data: { event: 'lead.created' } },
-          { id: '2', type: 'action', data: { action: 'ai_score' } },
+        trigger: { type: 'lead_created' },
+        actions: [
+          { id: 'enrich-1', type: 'ai_enrichment', config: {} },
+          { id: 'score-1', type: 'ai_lead_scoring', config: { leadStepId: 'enrich-1' } },
         ],
-        edges: [{ id: 'e1-2', source: '1', target: '2' }],
       }),
       active: true,
     },
   });
-
   console.log('Workflows created');
+
   console.log('Seeding completed successfully.');
 }
 
